@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Household builder</title>
+        <style>
+            .debug {
+                font-family: monospace;
+                border: 1px solid black;
+                padding: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Household builder</h1>
+        <div class="builder">
+            <ol class="household"></ol>
+            <form>
+                <div>
+                    <label>Age
+                        <input type="text" name="age">
+                    </label>
+                </div>
+                <div>
+                    <label>Relationship
+                        <select name="rel">
+                            <option value="">---</option>
+                            <option value="self">Self</option>
+                            <option value="spouse">Spouse</option>
+                            <option value="child">Child</option>
+                            <option value="parent">Parent</option>
+                            <option value="grandparent">Grandparent</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </label>
+                </div>
+                <div>
+                    <label>Smoker?
+                        <input type="checkbox" name="smoker">
+                    </label>
+                </div>
+                <div>
+                    <button class="add">add</button>
+                </div>
+                <div>
+                    <button type="submit">submit</button>
+                </div>
+            </form>
+        </div>
+        <pre class="debug"></pre>
+        <script>
+            // your code goes here ...
+            function removeError () {
+                var error = document.getElementById('error');
+                if (error) {
+                    var parent = error.parentNode;
+                    parent.removeChild(error);
+                }
+            }
+
+            function makeError(missing) {
+                var newNode = document.createElement('p');
+                newNode.id = 'error';
+                newNode.style.color = 'red';
+                if (missing.length === 2) {
+                    newNode.innerHTML = 'Age and Relationship are both invalid';
+                } else if (missing.length === 1) {
+                    if (missing[0] === 'EmptyMem') {
+                        newNode.innerHTML = 'Please add a member before submitting';
+                    } else {
+                        newNode.innerHTML = missing[0] + ' is invalid';
+                    }
+                }
+
+                return newNode;
+            }
+
+            function errorMessage(errType) {
+                var household = document.getElementsByClassName('household')[0];
+                var error = document.getElementById('error');
+                var parent = household.parentNode;
+                switch(errType) {
+                    case 'both':
+                        removeError();
+                        parent.insertBefore(makeError(['Age', 'Rel']), household);
+                        break;
+                    case 'age':
+                        removeError();
+                        parent.insertBefore(makeError(['Age']), household);
+                        break;
+                    case 'rel':
+                        removeError();
+                        parent.insertBefore(makeError(['Relationship']), household);
+                        break;
+                    case 'membersEmpty':
+                        removeError();
+                        parent.insertBefore(makeError(['EmptyMem']), household);
+                    default:
+                        return false;
+                }
+            }
+
+            function getNameValue(name) {
+                return document.getElementsByName(name)[0].value;
+            }
+
+            function validAge(val) {
+                val = parseInt(val);
+                return val && val > 0;
+            }
+
+            function validRel(val) {
+                return !!val;
+            }
+
+            function isSmoker() {
+                var smoker = document.getElementsByName('smoker')[0].checked;
+                if (smoker) {
+                    return 'Smoker';
+                } else {
+                    return 'Non-Smoker';
+                }
+            }
+
+            function removeAllChildren(node) {
+                while (node.hasChildNodes()) {
+                    node.removeChild(node.lastChild);
+                }
+            }
+
+            function validateForm(event) {
+                event.preventDefault();
+                var age = getNameValue('age');
+                var rel = getNameValue('rel');
+
+                if (householdMembers.length) {
+                    var debug = document.getElementsByClassName('debug')[0];
+                    var paragraph = document.createElement('p');
+                    var household = document.getElementsByClassName('household')[0];
+                    paragraph.innerHTML = JSON.stringify(householdMembers, null, 4);
+                    removeAllChildren(debug);
+                    removeAllChildren(household);
+                    debug.appendChild(paragraph);
+                    householdMembers = [];
+                } else if (!validAge(age) || !validRel(rel)) {
+                    if (!validAge(age) && !validRel(rel)) {
+                        errorMessage('both');
+                    } else if (!validAge(age)) {
+                        errorMessage('age');
+                    } else {
+                        errorMessage('rel');
+                    }
+                } else if (!householdMembers.length) {
+                    errorMessage('membersEmpty')
+                }
+            }
+
+            function clearForm() {
+                document.getElementsByName('age')[0].value = '';
+                document.getElementsByName('rel')[0].value = '';
+            }
+
+            function removeMember(event) {
+                var id = parseInt(event.target.value)   ;
+                var member = event.target.parentNode;
+                var parent = member.parentNode;
+                parent.removeChild(member);
+                for (var i = 0; i < householdMembers.length; i++) {
+                    if (householdMembers[i].id === id) {
+                        householdMembers.splice(i, 1);
+                    }
+                }
+            }
+
+            function makeListHTML(age, rel, smoker) {
+                return '<strong>Age:</strong> ' + age + ' <strong>Relationship:</strong> ' + rel + ' <strong>Smoker?: </strong>' + smoker + ' <strong>Delete?</strong> ';
+            }
+
+
+            function addMember(event) {
+                event.preventDefault();
+                var age = getNameValue('age');
+                var rel = getNameValue('rel');
+                var smoker = isSmoker();
+                if (validAge(age) && validRel(rel)) {
+                    removeError();
+                    var household = document.getElementsByClassName('household')[0];
+                    var listItem = document.createElement('li');
+                    var checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = id;
+                    listItem.innerHTML = makeListHTML(age, rel, smoker);
+                    checkbox.addEventListener('click', removeMember);
+                    listItem.appendChild(checkbox);
+                    household.appendChild(listItem);
+                    storeMember(age, rel, smoker);
+                    clearForm();
+                } else {
+                    validateForm(event);
+                }
+            }
+
+            function storeMember(age, rel, smoker) {
+                var info = {};
+                info['age'] = age;
+                info['rel'] = rel;
+                info['smoker'] = smoker;
+                info['id'] = id++;
+                householdMembers.push(info);
+            }
+
+
+            var form = document.querySelector('form');
+            var addBtn = document.getElementsByClassName('add')[0];
+            var householdMembers = [];
+            var id = 1;
+
+            form.addEventListener('submit', validateForm);
+            addBtn.addEventListener('click', addMember)
+        </script>
+    </body>
+</html>
